@@ -43,7 +43,7 @@ export default function ExpenseManager() {
       const res = await fetch("/api/fund");
       if (!res.ok) throw new Error("Failed to fetch income");
       const data = await res.json();
-      const total = data.reduce((sum: number, item: any) => 
+      const total = data.reduce((sum: number, item: { status: string; amount: number }) => 
         item.status === "Paid" ? sum + item.amount : sum, 0
       );
       setTotalIncome(total);
