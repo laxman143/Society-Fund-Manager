@@ -106,7 +106,7 @@ export default function ExpenseManager() {
     doc.text("Balance Summary", 14, 30);
     
     const summaryData = [
-      ["Total Collection", `${totalIncome} Rs`],
+      ["Total Collection", `Rs. ${totalIncome}`],
     ];
     
     doc.autoTable({
@@ -117,20 +117,22 @@ export default function ExpenseManager() {
       styles: { fontSize: 10 },
     });
     
-    // Expenses Section
-    doc.text("Expense Details:", 14, doc.autoTable.previous.finalY + 10);
+    // Set default Y position
+    const yPos = 40;
     
- 
+    // Expenses Section
+    doc.text("Expense Details:", 14, yPos + 10);
+
     doc.autoTable({
-      startY: doc.autoTable.previous.finalY + 15,
+      startY: yPos + 15,
       head: [["Details", "Amount"]],
-      body: expenses.map(e => [e.details, `₹${e.amount}`]),
+      body: expenses.map(e => [e.details, `${e.amount}`]),
       theme: 'striped',
       headStyles: { fillColor: [41, 128, 185], textColor: 255 },
       footStyles: { fillColor: [169, 169, 169] },
       foot: [
-        ["Total Expenses", `${totalExpenses} Rs`],
-        ["Balance Amount", `${balance} Rs`]
+        ["Total Expenses", `Rs. ${totalExpenses}`],
+        ["Balance Amount", `Rs. ${balance} `]
       ],
     });
 
@@ -189,11 +191,11 @@ export default function ExpenseManager() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-blue-100 p-4 rounded shadow">
           <h3 className="text-lg font-semibold">Total Income</h3>
-          <p className="text-2xl">₹{totalIncome}</p>
+          <p className="text-2xl">Rs. {totalIncome}</p>
         </div>
         <div className="bg-red-100 p-4 rounded shadow">
           <h3 className="text-lg font-semibold">Total Expenses</h3>
-          <p className="text-2xl">₹{totalExpenses}</p>
+          <p className="text-2xl">Rs. {totalExpenses}</p>
         </div>
         <div className={`p-4 rounded shadow ${balance >= 0 ? 'bg-green-100' : 'bg-yellow-100'}`}>
           <h3 className="text-lg font-semibold">Balance</h3>
@@ -244,7 +246,7 @@ export default function ExpenseManager() {
                   {new Date(e.date).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-2">{e.details}</td>
-                <td className="px-4 py-2 text-right">₹{e.amount}</td>
+                <td className="px-4 py-2 text-right">{e.amount}</td>
                 <td className="px-4 py-2">
                   <button 
                     onClick={() => e._id && handleDelete(e._id)}
