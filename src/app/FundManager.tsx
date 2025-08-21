@@ -42,12 +42,20 @@ export default function FundManager() {
       setLoading(true);
       setError(null);
       const res = await fetch("/api/fund");
-      if (!res.ok) {
-        throw new Error('Failed to fetch data');
-      }
       const data = await res.json();
-      setEntries(Array.isArray(data) ? data : []);
+      
+      if (!res.ok) {
+        throw new Error(data.details || data.error || 'Failed to fetch data');
+      }
+      
+      if (!Array.isArray(data)) {
+        console.error('Unexpected data format:', data);
+        throw new Error('Received invalid data format from server');
+      }
+
+      setEntries(data);
     } catch (err) {
+      console.error('Fetch Error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       setEntries([]);
     } finally {

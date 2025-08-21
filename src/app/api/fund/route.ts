@@ -14,8 +14,17 @@ interface FundEntry {
 export async function GET() {
   try {
     const client = await clientPromise;
+    if (!client) {
+      throw new Error('Failed to connect to MongoDB.');
+    }
+
     const db = client.db("societyFund");
-    const data = await db.collection("funds")
+    const collection = db.collection("funds");
+
+    // Test the connection with a simple operation
+    await collection.countDocuments();
+
+    const data = await collection
       .find({})
       .sort({ block: 1, flatNo: 1 })
       .toArray();
@@ -28,8 +37,22 @@ export async function GET() {
     
     return NextResponse.json(transformedData);
   } catch (error) {
-    console.error('Database Error:', error);
-    return NextResponse.json({ error: 'Database Error' }, { status: 500 });
+    console.error('Database Error:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      env: process.env.NODE_ENV,
+      hasUri: !!process.env.MONGODB_URI
+    });
+    
+    return NextResponse.json({ 
+      error: 'Database Connection Error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
   }
 }
 
