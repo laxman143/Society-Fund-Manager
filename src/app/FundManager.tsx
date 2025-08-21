@@ -19,8 +19,9 @@ const initialForm: Partial<FundEntry> = { name: "", block: "", flatNo: "", amoun
 export default function FundManager() {
   const [entries, setEntries] = useState<FundEntry[]>([]);
   const [form, setForm] = useState<Partial<FundEntry>>(initialForm);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sortBlock, setSortBlock] = useState<string>("all");
   
   const sortedEntries = useMemo(() => {
@@ -37,11 +38,21 @@ export default function FundManager() {
   }, []);
 
   async function fetchData() {
-    setLoading(true);
-    const res = await fetch("/api/fund");
-    const data = await res.json();
-    setEntries(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch("/api/fund");
+      if (!res.ok) {
+        throw new Error('Failed to fetch data');
+      }
+      const data = await res.json();
+      setEntries(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setEntries([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {

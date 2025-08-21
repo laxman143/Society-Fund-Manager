@@ -20,7 +20,13 @@ export async function GET() {
       .sort({ block: 1, flatNo: 1 })
       .toArray();
     
-    return NextResponse.json(data);
+    // Transform ObjectId to string for client-side use
+    const transformedData = data.map(item => ({
+      ...item,
+      _id: item._id.toString()
+    }));
+    
+    return NextResponse.json(transformedData);
   } catch (error) {
     console.error('Database Error:', error);
     return NextResponse.json({ error: 'Database Error' }, { status: 500 });
@@ -33,8 +39,25 @@ export async function POST(req: NextRequest) {
     const client = await clientPromise;
     const db = client.db("societyFund");
     
-    const result = await db.collection("funds").insertOne(body);
-    return NextResponse.json({ ...body, _id: result.insertedId });
+    // Validate required fields
+    if (!body.name || !body.block || !body.flatNo || body.amount === undefined) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    const newEntry = {
+      ...body,
+      amount: Number(body.amount),
+      status: body.status || "Unpaid"
+    };
+    
+    const result = await db.collection("funds").insertOne(newEntry);
+    return NextResponse.json({
+      ...newEntry,
+      _id: result.insertedId.toString()
+    });
   } catch (error) {
     console.error('Database Error:', error);
     return NextResponse.json({ error: 'Database Error' }, { status: 500 });
