@@ -270,7 +270,7 @@ export default function FundManager() {
           }
         });
 
-        yOffset = (doc as any).lastAutoTable.finalY + 10;
+        yOffset = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
       });
 
       // Add grand total if showing all blocks
