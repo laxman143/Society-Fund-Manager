@@ -14,11 +14,11 @@ interface FundEntry {
 }
 
 const BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-const initialForm = { name: "", block: "", flatNo: "", amount: 0, status: "Paid" };
+const initialForm: Partial<FundEntry> = { name: "", block: "", flatNo: "", amount: 0, status: "Paid" };
 
 export default function FundManager() {
   const [entries, setEntries] = useState<FundEntry[]>([]);
-  const [form, setForm] = useState<any>(initialForm);
+  const [form, setForm] = useState<Partial<FundEntry>>(initialForm);
   const [editId, setEditId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [sortBlock, setSortBlock] = useState<string>("all");
@@ -44,12 +44,12 @@ export default function FundManager() {
     setLoading(false);
   }
 
-  function handleChange(e: any) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
-    setForm((f: any) => ({ ...f, [name]: name === "amount" ? Number(value) : value }));
+    setForm((f) => ({ ...f, [name]: name === "amount" ? Number(value) : value }));
   }
 
-  async function handleSubmit(e: any) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!form.name || !form.block || !form.amount) return;
     if (editId) {
@@ -220,7 +220,7 @@ export default function FundManager() {
           .reduce((sum, e) => sum + e.amount, 0);
 
         // Block table
-        // @ts-ignore
+        // @ts-expect-error jsPDF types are incomplete
         doc.autoTable({
           startY: yOffset + 5,
           head: [["Name", "Flat No", "Amount", "Status"]],
