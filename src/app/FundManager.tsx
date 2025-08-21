@@ -220,7 +220,6 @@ export default function FundManager() {
           .reduce((sum, e) => sum + e.amount, 0);
 
         // Block table
-        // @ts-expect-error jsPDF types are incomplete
         doc.autoTable({
           startY: yOffset + 5,
           head: [["Name", "Flat No", "Amount", "Status"]],
