@@ -5,7 +5,7 @@ import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 
 interface FundEntry {
-  id: number;
+  _id?: string;
   name: string;
   block: string;
   flatNo: string;
@@ -56,7 +56,7 @@ export default function FundManager() {
       await fetch("/api/fund", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, id: editId }),
+        body: JSON.stringify({ ...form, _id: editId }),
       });
     } else {
       await fetch("/api/fund", {
@@ -72,14 +72,14 @@ export default function FundManager() {
 
   function handleEdit(entry: FundEntry) {
     setForm(entry);
-    setEditId(entry.id);
+    setEditId(entry._id || null);
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(_id: string) {
     await fetch("/api/fund", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ _id }),
     });
     fetchData();
   }
@@ -355,14 +355,14 @@ export default function FundManager() {
           </thead>
           <tbody>
             {sortedEntries.map((e) => (
-              <tr key={e.id} className="border-t">
+              <tr key={e._id} className="border-t">
                 <td className="px-4 py-2">{e.name}</td>
                 <td className="px-4 py-2">{e.block}-{e.flatNo}</td>
                 <td className="px-4 py-2">₹{e.amount}</td>
                 <td className="px-4 py-2 text-center">{e.status === "Paid" ? "✅" : "❌"}</td>
                 <td className="px-4 py-2 flex gap-2">
                   <button className="btn" onClick={() => handleEdit(e)}>Edit</button>
-                  <button className="btn-danger" onClick={() => handleDelete(e.id)}>Delete</button>
+                  <button className="btn-danger" onClick={() => e._id && handleDelete(e._id)}>Delete</button>
                 </td>
               </tr>
             ))}

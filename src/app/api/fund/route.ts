@@ -1,9 +1,9 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
+import clientPromise from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 interface FundEntry {
-  id: number;
+  _id?: ObjectId;
   name: string;
   block: string;
   flatNo: string;
@@ -11,50 +11,78 @@ interface FundEntry {
   status: "Paid" | "Unpaid";
 }
 
-const DATA_FILE = path.join(process.cwd(), 'data.json');
-
-async function readData() {
+export async function GET() {
   try {
-    const raw = await fs.readFile(DATA_FILE, 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    return [];
+    const client = await clientPromise;
+    const db = client.db("societyFund");
+    const data = await db.collection("funds")
+      .find({})
+      .sort({ block: 1, flatNo: 1 })
+      .toArray();
+    
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Database Error:', error);
+    return NextResponse.json({ error: 'Database Error' }, { status: 500 });
   }
 }
 
-async function writeData(data: FundEntry[]) {
-  await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-export async function GET() {
-  const data = await readData();
-  return NextResponse.json(data);
-}
-
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const data = await readData();
-  const nextId = data.length > 0 ? Math.max(...data.map((e: FundEntry) => e.id)) + 1 : 1;
-  const entry = { id: nextId, ...body };
-  data.push(entry);
-  await writeData(data);
-  return NextResponse.json(entry);
+  try {
+    const body = await req.json();
+    const client = await clientPromise;
+    const db = client.db("societyFund");
+    
+    const result = await db.collection("funds").insertOne(body);
+    return NextResponse.json({ ...body, _id: result.insertedId });
+  } catch (error) {
+    console.error('Database Error:', error);
+    return NextResponse.json({ error: 'Database Error' }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
-  const body = await req.json();
-  const data = await readData();
-  const idx = data.findIndex((e: FundEntry) => e.id === body.id);
-  if (idx === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  data[idx] = body;
-  await writeData(data);
-  return NextResponse.json(body);
+  try {
+    const body = await req.json();
+    const { _id, ...updateData } = body;
+    
+    const client = await clientPromise;
+    const db = client.db("societyFund");
+    
+    const result = await db.collection("funds").findOneAndUpdate(
+      { _id: new ObjectId(_id) },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('Database Error:', error);
+    return NextResponse.json({ error: 'Database Error' }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
-  const { id } = await req.json();
-  let data = await readData();
-  data = data.filter((e: FundEntry) => e.id !== id);
-  await writeData(data);
-  return NextResponse.json({ success: true });
+  try {
+    const { _id } = await req.json();
+    const client = await clientPromise;
+    const db = client.db("societyFund");
+    
+    const result = await db.collection("funds").deleteOne({
+      _id: new ObjectId(_id)
+    });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Database Error:', error);
+    return NextResponse.json({ error: 'Database Error' }, { status: 500 });
+  }
 }
