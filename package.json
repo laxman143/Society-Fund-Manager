@@ -13,12 +13,15 @@
     "jspdf-autotable": "^3.5.29",
     "mongodb": "^6.18.0",
     "mongoose": "^8.17.2",
-    "next": "15.5.0",
+    "next": "^15.5.3",
     "pdfmake": "^0.2.20",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "xlsx": "^0.18.5"
   },
+  "resolutions": {
+  "next": "15.3.2"
+},
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
