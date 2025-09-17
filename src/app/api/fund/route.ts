@@ -9,6 +9,7 @@ interface FundEntry {
   flatNo: string;
   amount: number;
   status: "Paid" | "Unpaid";
+  comment?: string;
 }
 
 export async function GET() {
@@ -63,9 +64,17 @@ export async function POST(req: NextRequest) {
     const db = client.db("societyFund");
     
     // Validate required fields
-    if (!body.name || !body.block || !body.flatNo || body.amount === undefined) {
+    if (!body.name || !body.block || body.amount === undefined) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+    
+    // flatNo is required only if block is not "Other"
+    if (body.block !== "Other" && !body.flatNo) {
+      return NextResponse.json(
+        { error: 'Flat number is required for this block' },
         { status: 400 }
       );
     }

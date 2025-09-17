@@ -13,7 +13,8 @@ interface Expense {
 
 export default function ExpenseManager() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [form, setForm] = useState({ details: "", amount: 0 });
+  const [form, setForm] = useState({ details: "", amount: 0, date: new Date().toISOString().split("T")[0]  });
+  const [editId, setEditId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalIncome, setTotalIncome] = useState(0);
@@ -59,19 +60,43 @@ export default function ExpenseManager() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/expense", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error("Failed to add expense");
-      setForm({ details: "", amount: 0 });
+      if (editId) {
+        const res = await fetch("/api/expense", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            _id: editId,
+            details: form.details,
+            amount: form.amount,
+            date: form.date,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to update expense");
+        setEditId(null);
+      } else {
+        const res = await fetch("/api/expense", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+        if (!res.ok) throw new Error("Failed to add expense");
+      }
+      setForm({ details: "", amount: 0, date: "" });
       fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleEdit(exp: Expense) {
+    setForm({
+      details: exp.details,
+      amount: exp.amount,
+      date: exp.date.substring(0, 10) // Convert to YYYY-MM-DD format for date input
+    });
+    setEditId(exp._id || null);
   }
 
   async function handleDelete(id: string) {
@@ -99,7 +124,7 @@ export default function ExpenseManager() {
     
     // Title
     doc.setFontSize(16);
-    doc.text("Society Fund Balance Report", 14, 15);
+    doc.text("Saransh Arth Navratri Mahostav - Balance Report", 14, 15);
     
     // Summary Section
     doc.setFontSize(12);
@@ -107,6 +132,8 @@ export default function ExpenseManager() {
     
     const summaryData = [
       ["Total Collection", `Rs. ${totalIncome}`],
+      ["Total Expenses", `Rs. ${totalExpenses}`],
+      ["Balance Amount", `Rs. ${balance}`],
     ];
     
     doc.autoTable({
@@ -117,22 +144,24 @@ export default function ExpenseManager() {
       styles: { fontSize: 10 },
     });
     
-    // Set default Y position
-    const yPos = 40;
-    
+    // Determine next Y after summary table to avoid overlap
+    const afterSummaryY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 50;
+
     // Expenses Section
-    doc.text("Expense Details:", 14, yPos + 10);
+    doc.text("Expense Details:", 14, afterSummaryY + 10);
 
     doc.autoTable({
-      startY: yPos + 15,
+      startY: afterSummaryY + 15,
       head: [["Details", "Amount"]],
       body: expenses.map(e => [e.details, `${e.amount}`]),
       theme: 'striped',
       headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      styles: { fontSize: 10 },
+      columnStyles: { 1: { halign: 'right' } },
       footStyles: { fillColor: [169, 169, 169] },
       foot: [
         ["Total Expenses", `Rs. ${totalExpenses}`],
-        ["Balance Amount", `Rs. ${balance} `]
+        ["Balance Amount", `Rs. ${balance}`]
       ],
     });
 
@@ -144,9 +173,12 @@ export default function ExpenseManager() {
     
     // Summary Sheet
     const summaryData = [
-      ["Society Fund Balance Report"],
+      ["Saransh Arth Navratri Mahostav - Balance Report"],
       [],
+      ["Summary:"],
       ["Total Collection", totalIncome],
+      ["Total Expenses", totalExpenses],
+      ["Balance Amount", balance],
       [],
       ["Expense Details:"],
       ["Details", "Amount", "Date"],
@@ -156,6 +188,7 @@ export default function ExpenseManager() {
         new Date(e.date).toLocaleDateString()
       ]),
       [],
+      ["Summary Totals:"],
       ["Total Expenses", totalExpenses],
       ["Balance Amount", balance]
     ];
@@ -176,7 +209,7 @@ export default function ExpenseManager() {
   return (
       <div className="w-full max-w-3xl mx-auto p-4 bg-white min-h-screen">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Expense Manager</h1>
+        <h1 className="text-2xl font-bold">Saransh Arth Navratri Mahostav - Expense Manager</h1>
         <div className="flex gap-2">
           <button onClick={exportExcel} className="btn">
             Export Excel
@@ -199,30 +232,37 @@ export default function ExpenseManager() {
         </div>
         <div className={`p-4 rounded shadow ${balance >= 0 ? 'bg-green-100' : 'bg-yellow-100'}`}>
           <h3 className="text-lg font-semibold">Balance</h3>
-          <p className="text-2xl">₹{balance}</p>
+          <p className="text-2xl">{balance}</p>
         </div>
       </div>      {/* Expense Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded shadow p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <input
             type="text"
             value={form.details}
             onChange={(e) => setForm(f => ({ ...f, details: e.target.value }))}
             placeholder="Expense Details"
-            className="input flex-grow"
+            className="input"
             required
           />
-          <div className="flex gap-4">
-            <input
-              type="number"
-              value={form.amount || ""}
-              onChange={(e) => setForm(f => ({ ...f, amount: Number(e.target.value) }))}
-              placeholder="Amount"
-              className="input w-32"
-              required
-              min={1}
-            />
-            <button type="submit" className="btn-primary whitespace-nowrap">Add Expense</button>
+          <input
+            type="number"
+            value={form.amount || ""}
+            onChange={(e) => setForm(f => ({ ...f, amount: Number(e.target.value) }))}
+            placeholder="Amount"
+            className="input"
+            required
+            min={1}
+          />
+          <input
+            type="date"
+            value={form.date}
+            onChange={(e) => setForm(f => ({ ...f, date: e.target.value }))}
+            className="input"
+          />
+          <div className="flex gap-2">
+            <button type="submit" className="btn-primary">{editId ? "Update" : "Add"} Expense</button>
+            {editId && <button type="button" className="btn" onClick={() => { setForm({ details: "", amount: 0, date: "" }); setEditId(null); }}>Cancel</button>}
           </div>
         </div>
         {error && <p className="text-red-500">{error}</p>}
@@ -247,7 +287,8 @@ export default function ExpenseManager() {
                 </td>
                 <td className="px-4 py-2">{e.details}</td>
                 <td className="px-4 py-2 text-right">{e.amount}</td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-2 flex gap-2">
+                  <button className="btn" onClick={() => handleEdit(e)}>Edit</button>
                   <button 
                     onClick={() => e._id && handleDelete(e._id)}
                     className="btn-danger"

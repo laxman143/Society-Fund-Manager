@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Society Fund Manager",
+  title: "Saransh Earth Navratri Mahostav",
   description: "Manage society funds and expenses",
 };
 
@@ -31,7 +31,7 @@ export default function RootLayout({
         <header>
           <div className="bg-white shadow">
             <div className="max-w-3xl mx-auto py-4 px-4">
-              <h1 className="text-2xl font-bold text-gray-900">Society Fund Manager</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Saransh Earth Navratri Mahostav</h1>
             </div>
           </div>
           <Navigation />

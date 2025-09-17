@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const newExpense = {
       ...body,
       amount: Number(body.amount),
-      date: new Date().toISOString()
+      date: body.date ? new Date(body.date).toISOString() : new Date().toISOString()
     };
     
     const result = await db.collection("expenses").insertOne(newExpense);
@@ -60,6 +60,34 @@ export async function DELETE(req: NextRequest) {
     await db.collection("expenses").deleteOne({
       _id: new ObjectId(_id)
     });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Database Error:', error);
+    return NextResponse.json({ error: 'Database Error' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { _id, details, amount, date } = body || {};
+    if (!_id) {
+      return NextResponse.json({ error: 'Missing _id' }, { status: 400 });
+    }
+
+    const client = await clientPromise;
+    const db = client.db("societyFund");
+
+    const update: Partial<Expense> = {};
+    if (typeof details === 'string') update.details = details;
+    if (amount !== undefined) update.amount = Number(amount);
+    if (date) update.date = new Date(date).toISOString();
+
+    await db.collection("expenses").updateOne(
+      { _id: new ObjectId(_id) },
+      { $set: update }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
