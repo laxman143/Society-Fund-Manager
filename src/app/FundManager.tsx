@@ -24,6 +24,7 @@ export default function FundManager() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortBlock, setSortBlock] = useState<string>("all");
+  const [toast, setToast] = useState<{ message: string; kind: 'success' | 'error' } | null>(null);
   
   const sortedEntries = useMemo(() => {
     return [...entries]
@@ -74,23 +75,25 @@ export default function FundManager() {
     if (!form.name || !form.block || !form.amount) return;
     // Make flatNo optional when block is "Other" or "Banner"
     if (form.block !== "Other" && form.block !== "Banner" && !form.flatNo) return;
-    
-    if (editId) {
-      await fetch("/api/fund", {
-        method: "PUT",
+    try {
+      setLoading(true);
+      const res = await fetch("/api/fund", {
+        method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, _id: editId }),
+        body: JSON.stringify(editId ? { ...form, _id: editId } : form),
       });
-    } else {
-      await fetch("/api/fund", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      if (!res.ok) throw new Error('Failed to save');
+      setToast({ message: editId ? 'Updated successfully' : 'Saved successfully', kind: 'success' });
+      setTimeout(() => setToast(null), 3000);
+      setForm(initialForm);
+      setEditId(null);
+      fetchData();
+    } catch (e) {
+      setToast({ message: 'Action failed. Please try again.', kind: 'error' });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setLoading(false);
     }
-    setForm(initialForm);
-    setEditId(null);
-    fetchData();
   }
 
   function handleEdit(entry: FundEntry) {
@@ -99,12 +102,25 @@ export default function FundManager() {
   }
 
   async function handleDelete(_id: string) {
-    await fetch("/api/fund", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ _id }),
-    });
-    fetchData();
+    const ok = window.confirm('Are you sure you want to delete this entry?');
+    if (!ok) return;
+    try {
+      setLoading(true);
+      const res = await fetch("/api/fund", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _id }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setToast({ message: 'Deleted successfully', kind: 'success' });
+      setTimeout(() => setToast(null), 3000);
+      fetchData();
+    } catch (e) {
+      setToast({ message: 'Delete failed. Please try again.', kind: 'error' });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function exportExcel() {
@@ -406,6 +422,11 @@ export default function FundManager() {
 
   return (
     <div className="max-w-3xl mx-auto p-4">
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded shadow text-white ${toast.kind === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+          {toast.message}
+        </div>
+      )}
       <h1 className="text-2xl font-bold mb-4">Saransh Arth Navratri Mahostav</h1>
       
       {/* Summary Cards */}
@@ -469,25 +490,25 @@ export default function FundManager() {
           />
         </div>
       </form>
-      <div className="flex gap-4 mb-4 items-center justify-between">
+      <div className="flex gap-4 mb-2 items-center justify-between">
         <div className="flex gap-2">
           <button className="btn" onClick={exportExcel}>Export Excel</button>
           <button className="btn" onClick={exportPDF}>Export PDF</button>
           <button className="btn" onClick={exportSummaryPDF}>Export Summary PDF</button>
         </div>
-        <div className="flex items-center gap-2">
-          <label>Sort by:</label>
-          <select 
-            value={sortBlock} 
-            onChange={(e) => setSortBlock(e.target.value)}
-            className="input min-w-[120px]"
-          >
-            <option value="all">All</option>
-            {BLOCKS.map(block => (
-              <option key={block} value={block}>{block}</option>
-            ))}
-          </select>
-        </div>
+      </div>
+      <div className="flex items-center gap-2 mb-4">
+        <label>Filter by:</label>
+        <select 
+          value={sortBlock} 
+          onChange={(e) => setSortBlock(e.target.value)}
+          className="input min-w-[120px]"
+        >
+          <option value="all">All</option>
+          {BLOCKS.map(block => (
+            <option key={block} value={block}>{block}</option>
+          ))}
+        </select>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white rounded shadow">
