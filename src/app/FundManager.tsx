@@ -14,7 +14,7 @@ interface FundEntry {
   comment?: string;
 }
 
-const BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "Shop", "Other"];
+const BLOCKS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "Shop", "Other", "Banner"];
 const initialForm: Partial<FundEntry> = { name: "", block: "", flatNo: "", amount: 0, status: "Paid", comment: "" };
 
 export default function FundManager() {
@@ -72,8 +72,8 @@ export default function FundManager() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!form.name || !form.block || !form.amount) return;
-    // Make flatNo optional when block is "Other"
-    if (form.block !== "Other" && !form.flatNo) return;
+    // Make flatNo optional when block is "Other" or "Banner"
+    if (form.block !== "Other" && form.block !== "Banner" && !form.flatNo) return;
     
     if (editId) {
       await fetch("/api/fund", {
@@ -431,7 +431,7 @@ export default function FundManager() {
             <option value="">Select Block</option>
             {BLOCKS.map(block => (
               <option key={block} value={block}>
-                {block === "Shop" ? "Shop" : block === "Other" ? "Other" : `Block ${block}`}
+                {block === "Shop" ? "Shop" : block === "Other" ? "Other" : block === "Banner" ? "Banner" : `Block ${block}`}
               </option>
             ))}
           </select>
@@ -439,9 +439,9 @@ export default function FundManager() {
             name="flatNo" 
             value={form.flatNo} 
             onChange={handleChange} 
-            placeholder={form.block === "Other" ? "Flat Number (Optional)" : "Flat Number"} 
+            placeholder={(form.block === "Other" || form.block === "Banner") ? "Flat Number (Optional)" : "Flat Number"} 
             className="input" 
-            required={form.block !== "Other"} 
+            required={!(form.block === "Other" || form.block === "Banner")} 
           />
           <input name="amount" type="number" value={form.amount} onChange={handleChange} placeholder="Amount" className="input" required min={1} />
         </div>
@@ -506,7 +506,13 @@ export default function FundManager() {
               <tr key={e._id} className="border-t">
                 <td className="px-4 py-2">{e.name}</td>
                 <td className="px-4 py-2">
-                  {e.block === "Shop" ?  `Shop-${e.flatNo}` : e.block === "Other" ? `Other-${e.flatNo}` : `${e.block}-${e.flatNo}`}
+                  {e.block === "Shop" 
+                    ? (e.flatNo ? `Shop-${e.flatNo}` : "Shop") 
+                    : e.block === "Other" 
+                    ? (e.flatNo ? `Other-${e.flatNo}` : "Other") 
+                    : e.block === "Banner" 
+                    ? (e.flatNo ? `Banner-${e.flatNo}` : "Banner") 
+                    : `${e.block}-${e.flatNo}`}
                 </td>
                 <td className="px-4 py-2">{e.amount}</td>
                 <td className="px-4 py-2 text-center">{e.status === "Paid" ? "✅" : "❌"}</td>

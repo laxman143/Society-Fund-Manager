@@ -71,8 +71,8 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // flatNo is required only if block is not "Other"
-    if (body.block !== "Other" && !body.flatNo) {
+    // flatNo is required only if block is not "Other" or "Banner"
+    if (body.block !== "Other" && body.block !== "Banner" && !body.flatNo) {
       return NextResponse.json(
         { error: 'Flat number is required for this block' },
         { status: 400 }
